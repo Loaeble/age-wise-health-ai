@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, User, Edit2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
 import { calculateAge } from "@/utils/ageCalculations";
 import { UserData } from "@/pages/Index";
@@ -19,6 +19,7 @@ interface AgeCalculatorProps {
 
 const AgeCalculator = ({ onAgeCalculated, userData, onEdit }: AgeCalculatorProps) => {
   const [birthDate, setBirthDate] = useState<Date>();
+  const [dateText, setDateText] = useState("");
   const [name, setName] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(!userData);
@@ -26,6 +27,7 @@ const AgeCalculator = ({ onAgeCalculated, userData, onEdit }: AgeCalculatorProps
   useEffect(() => {
     if (userData) {
       setBirthDate(userData.birthDate);
+      setDateText(format(userData.birthDate, "yyyy-MM-dd"));
       setName(userData.name || "");
       setIsEditing(false);
     } else {
@@ -34,7 +36,9 @@ const AgeCalculator = ({ onAgeCalculated, userData, onEdit }: AgeCalculatorProps
       if (saved) {
         try {
           const data = JSON.parse(saved);
-          setBirthDate(new Date(data.birthDate));
+          const savedDate = new Date(data.birthDate);
+          setBirthDate(savedDate);
+          setDateText(format(savedDate, "yyyy-MM-dd"));
           setName(data.name || "");
         } catch (error) {
           console.log("Error loading saved data:", error);
@@ -42,6 +46,26 @@ const AgeCalculator = ({ onAgeCalculated, userData, onEdit }: AgeCalculatorProps
       }
     }
   }, [userData]);
+
+  const handleDateTextChange = (value: string) => {
+    setDateText(value);
+    
+    // Try to parse the date from text input
+    if (value) {
+      const parsedDate = parse(value, "yyyy-MM-dd", new Date());
+      if (isValid(parsedDate) && parsedDate <= new Date()) {
+        setBirthDate(parsedDate);
+      }
+    }
+  };
+
+  const handleCalendarSelect = (date: Date | undefined) => {
+    if (date) {
+      setBirthDate(date);
+      setDateText(format(date, "yyyy-MM-dd"));
+      setIsOpen(false);
+    }
+  };
 
   const handleCalculate = () => {
     if (!birthDate) return;
@@ -115,10 +139,26 @@ const AgeCalculator = ({ onAgeCalculated, userData, onEdit }: AgeCalculatorProps
           />
         </div>
 
-        {/* Birth Date Picker */}
+        {/* Birth Date Input - Text Field */}
+        <div className="space-y-2">
+          <Label htmlFor="birthdate-text" className="text-sm font-medium text-gray-700">
+            Date of Birth * (Type or Select)
+          </Label>
+          <Input
+            id="birthdate-text"
+            type="date"
+            value={dateText}
+            onChange={(e) => handleDateTextChange(e.target.value)}
+            max={format(new Date(), "yyyy-MM-dd")}
+            min="1900-01-01"
+            className="w-full h-12"
+          />
+        </div>
+
+        {/* Birth Date Picker - Calendar */}
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
-            Date of Birth *
+            Or Select from Calendar
           </Label>
           <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
@@ -137,10 +177,7 @@ const AgeCalculator = ({ onAgeCalculated, userData, onEdit }: AgeCalculatorProps
               <Calendar
                 mode="single"
                 selected={birthDate}
-                onSelect={(date) => {
-                  setBirthDate(date);
-                  setIsOpen(false);
-                }}
+                onSelect={handleCalendarSelect}
                 disabled={(date) =>
                   date > new Date() || date < new Date("1900-01-01")
                 }
