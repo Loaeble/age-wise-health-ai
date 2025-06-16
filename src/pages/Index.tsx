@@ -18,16 +18,23 @@ export interface UserData {
 
 const Index = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const handleAgeCalculated = (data: UserData) => {
     setUserData(data);
+    setIsEditing(false);
     // Save to localStorage
     localStorage.setItem('ageCalculatorData', JSON.stringify(data));
   };
 
   const handleReset = () => {
     setUserData(null);
+    setIsEditing(false);
     localStorage.removeItem('ageCalculatorData');
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
   };
 
   return (
@@ -43,10 +50,21 @@ const Index = () => {
           </p>
         </div>
 
-        {!userData ? (
-          <AgeCalculator onAgeCalculated={handleAgeCalculated} />
+        {(!userData || isEditing) ? (
+          <AgeCalculator 
+            onAgeCalculated={handleAgeCalculated} 
+            userData={userData}
+            onEdit={handleEdit}
+          />
         ) : (
           <div className="space-y-8">
+            {/* Editable Age Calculator Summary */}
+            <AgeCalculator 
+              onAgeCalculated={handleAgeCalculated} 
+              userData={userData}
+              onEdit={handleEdit}
+            />
+
             {/* Age Display */}
             <div className="bg-white rounded-2xl shadow-lg p-8 text-center border border-blue-100">
               <h2 className="text-3xl font-bold text-gray-800 mb-2">
@@ -59,11 +77,11 @@ const Index = () => {
                 onClick={handleReset}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
               >
-                Calculate Again
+                Start Over
               </button>
             </div>
 
-            {/* Age Stats */}
+            {/* Age Stats with Chart */}
             <AgeStats userData={userData} />
 
             {/* Health Recommendations */}

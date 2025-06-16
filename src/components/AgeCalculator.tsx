@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, User } from "lucide-react";
+import { CalendarIcon, User, Edit2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { calculateAge } from "@/utils/ageCalculations";
@@ -13,26 +13,35 @@ import { UserData } from "@/pages/Index";
 
 interface AgeCalculatorProps {
   onAgeCalculated: (data: UserData) => void;
+  userData?: UserData | null;
+  onEdit?: () => void;
 }
 
-const AgeCalculator = ({ onAgeCalculated }: AgeCalculatorProps) => {
+const AgeCalculator = ({ onAgeCalculated, userData, onEdit }: AgeCalculatorProps) => {
   const [birthDate, setBirthDate] = useState<Date>();
   const [name, setName] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(!userData);
 
   useEffect(() => {
-    // Load saved data
-    const saved = localStorage.getItem('ageCalculatorData');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        setBirthDate(new Date(data.birthDate));
-        setName(data.name || "");
-      } catch (error) {
-        console.log("Error loading saved data:", error);
+    if (userData) {
+      setBirthDate(userData.birthDate);
+      setName(userData.name || "");
+      setIsEditing(false);
+    } else {
+      // Load saved data
+      const saved = localStorage.getItem('ageCalculatorData');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          setBirthDate(new Date(data.birthDate));
+          setName(data.name || "");
+        } catch (error) {
+          console.log("Error loading saved data:", error);
+        }
       }
     }
-  }, []);
+  }, [userData]);
 
   const handleCalculate = () => {
     if (!birthDate) return;
@@ -45,7 +54,38 @@ const AgeCalculator = ({ onAgeCalculated }: AgeCalculatorProps) => {
     };
 
     onAgeCalculated(userData);
+    setIsEditing(false);
   };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    if (onEdit) onEdit();
+  };
+
+  if (userData && !isEditing) {
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-6 border border-blue-100 max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Your Information</h3>
+            <p className="text-sm text-gray-600">
+              {userData.name && `Name: ${userData.name} • `}
+              Born: {format(userData.birthDate, "PPP")}
+            </p>
+          </div>
+          <Button
+            onClick={handleEdit}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Edit2 className="w-4 h-4" />
+            Edit
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 border border-blue-100 max-w-2xl mx-auto">
@@ -53,7 +93,9 @@ const AgeCalculator = ({ onAgeCalculated }: AgeCalculatorProps) => {
         <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
           <User className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Let's Get Started</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          {userData ? "Edit Your Information" : "Let's Get Started"}
+        </h2>
         <p className="text-gray-600">Enter your details to receive personalized health insights</p>
       </div>
 
@@ -110,13 +152,24 @@ const AgeCalculator = ({ onAgeCalculated }: AgeCalculatorProps) => {
         </div>
 
         {/* Calculate Button */}
-        <Button
-          onClick={handleCalculate}
-          disabled={!birthDate}
-          className="w-full h-12 bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105"
-        >
-          Calculate My Age & Get Health Tips
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            onClick={handleCalculate}
+            disabled={!birthDate}
+            className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-105"
+          >
+            {userData ? "Update Information" : "Calculate My Age & Get Health Tips"}
+          </Button>
+          {userData && (
+            <Button
+              onClick={() => setIsEditing(false)}
+              variant="outline"
+              className="h-12 px-6"
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
